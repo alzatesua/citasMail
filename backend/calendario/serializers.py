@@ -48,12 +48,14 @@ class CitaSerializer(serializers.ModelSerializer):
             )
         return data
 
-
 class RemitenteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Remitente
-        fields = ['id', 'sede', 'nombre', 'correo', 'whatsapp', 'activo', 'creado_en']
-        read_only_fields = ['id', 'creado_en']
+        fields = [
+            'id', 'sede', 'nombre', 'correo', 'whatsapp', 'activo',
+            'creado_en', 'calendario_compartido', 'calendario_compartido_en',
+        ]
+        read_only_fields = ['id', 'creado_en', 'calendario_compartido', 'calendario_compartido_en']
 
     def validate_whatsapp(self, value):
         if not value.startswith('+'):

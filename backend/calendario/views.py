@@ -13,6 +13,13 @@ from .serializers import (
 from .tasks import notificar_cita_creada
 from .disponibilidad import disponibilidad_semana, disponibilidad_mes, disponibilidad_anio
 
+from rest_framework.decorators import action
+from .google_calendar import crear_calendario_para_sede
+
+from .models import Remitente
+from .google_calendar import compartir_calendario_con_remitente
+from django.utils import timezone
+
 
 class SedeViewSet(viewsets.ModelViewSet):
     queryset = Sede.objects.all()
@@ -124,3 +131,163 @@ class RemitenteViewSet(viewsets.ModelViewSet):
         if sede_id:
             qs = qs.filter(sede_id=sede_id)
         return qs
+
+class SedeViewSet(viewsets.ModelViewSet):
+    queryset = Sede.objects.all()
+    serializer_class = SedeSerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=['post'], url_path='crear-calendario')
+    def crear_calendario(self, request, pk=None):
+        sede = self.get_object()
+        correo = request.data.get('correo')
+
+        if not correo:
+            return Response(
+                {'error': 'El campo correo es obligatorio (a quién compartir el calendario).'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            calendar_id = crear_calendario_para_sede(sede, correo)
+        except Exception as e:
+            return Response(
+                {'error': f'Error creando el calendario: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        calendario_anterior = sede.google_calendar_id
+        sede.google_calendar_id = calendar_id
+        sede.save(update_fields=['google_calendar_id'])
+
+        return Response({
+            'sede': sede.nombre,
+            'google_calendar_id': calendar_id,
+            'calendario_anterior': calendario_anterior,
+            'compartido_con': correo,
+        })
+
+    @action(detail=True, methods=['patch'], url_path='calendario-id')
+    def actualizar_calendario_id(self, request, pk=None):
+        """
+        Asigna o modifica manualmente el google_calendar_id de la sede,
+        sin crear un calendario nuevo en Google (útil si ya lo copiaste
+        directo desde la interfaz de Google Calendar).
+        """
+        sede = self.get_object()
+        nuevo_id = request.data.get('google_calendar_id')
+
+        if not nuevo_id:
+            return Response(
+                {'error': 'El campo google_calendar_id es obligatorio.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        calendario_anterior = sede.google_calendar_id
+        sede.google_calendar_id = nuevo_id
+        sede.save(update_fields=['google_calendar_id'])
+
+        return Response({
+            'sede': sede.nombre,
+            'google_calendar_id': sede.google_calendar_id,
+            'calendario_anterior': calendario_anterior,
+        })
+
+
+
+class SedeViewSet(viewsets.ModelViewSet):
+    queryset = Sede.objects.all()
+    serializer_class = SedeSerializer
+    permission_classes = [IsAuthenticated]
+
+    @action(detail=True, methods=['post'], url_path='crear-calendario')
+    def crear_calendario(self, request, pk=None):
+        sede = self.get_object()
+        correo = request.data.get('correo')
+
+        if not correo:
+            return Response(
+                {'error': 'El campo correo es obligatorio (a quién compartir el calendario).'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            calendar_id = crear_calendario_para_sede(sede, correo)
+        except Exception as e:
+            return Response(
+                {'error': f'Error creando el calendario: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        calendario_anterior = sede.google_calendar_id
+        sede.google_calendar_id = calendar_id
+        sede.save(update_fields=['google_calendar_id'])
+
+        return Response({
+            'sede': sede.nombre,
+            'google_calendar_id': calendar_id,
+            'calendario_anterior': calendario_anterior,
+            'compartido_con': correo,
+        })
+
+    @action(detail=True, methods=['patch'], url_path='calendario-id')
+    def actualizar_calendario_id(self, request, pk=None):
+        """
+        Asigna o modifica manualmente el google_calendar_id de la sede,
+        sin crear un calendario nuevo en Google.
+        """
+        sede = self.get_object()
+        nuevo_id = request.data.get('google_calendar_id')
+
+        if not nuevo_id:
+            return Response(
+                {'error': 'El campo google_calendar_id es obligatorio.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        calendario_anterior = sede.google_calendar_id
+        sede.google_calendar_id = nuevo_id
+        sede.save(update_fields=['google_calendar_id'])
+
+        return Response({
+            'sede': sede.nombre,
+            'google_calendar_id': sede.google_calendar_id,
+            'calendario_anterior': calendario_anterior,
+        })
+
+    @action(detail=True, methods=['post'], url_path='sincronizar-remitentes')
+    def sincronizar_remitentes(self, request, pk=None):
+        """
+        Comparte el calendario de la sede con todos los remitentes activos
+        que aún no lo tengan compartido. No repite con los que ya lo tienen.
+        """
+        sede = self.get_object()
+
+        if not sede.google_calendar_id:
+            return Response(
+                {'error': 'Esta sede no tiene un calendario configurado.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        pendientes = sede.remitentes.filter(activo=True, calendario_compartido=False)
+
+        resultados = {'compartidos': [], 'fallidos': []}
+
+        for remitente in pendientes:
+            try:
+                compartir_calendario_con_remitente(sede, remitente.correo)
+                remitente.calendario_compartido = True
+                remitente.calendario_compartido_en = timezone.now()
+                remitente.save(update_fields=['calendario_compartido', 'calendario_compartido_en'])
+                resultados['compartidos'].append(remitente.correo)
+            except Exception as e:
+                resultados['fallidos'].append({'correo': remitente.correo, 'error': str(e)})
+
+        return Response({
+            'sede': sede.nombre,
+            'ya_compartidos_previamente': sede.remitentes.filter(
+                activo=True, calendario_compartido=True
+            ).exclude(correo__in=resultados['compartidos']).count(),
+            'compartidos_ahora': resultados['compartidos'],
+            'fallidos': resultados['fallidos'],
+        })

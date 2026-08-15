@@ -12,8 +12,20 @@ python manage.py loaddata financieras
 verificar 
 python manage.py shell -c "from calendario.models import Financiera; print(list(Financiera.objects.values('nombre','codigo')))"
 
-
-
 levantar el worker
 cd ~/Distritec/automatizacion/backend
 celery -A config worker -l info
+
+
+
+PROBAR CONEXION DE EMAIL
+
+python manage.py shell
+
+from django.core.mail import send_mail
+send_mail(
+    'Prueba',
+    'Este es un correo de prueba desde Django.',
+    None,  # usa DEFAULT_FROM_EMAIL
+    ['tu_correo_personal@gmail.com'],
+)

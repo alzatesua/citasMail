@@ -4,6 +4,8 @@ from celery import shared_task
 from .models import Cita, Recordatorio
 from django.core.mail import send_mail
 from django.conf import settings
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
 
 @shared_task
 def generar_recordatorios():
@@ -48,27 +50,45 @@ def notificar_cita_creada(self, cita_id):
 
     try:
         cita = Cita.objects.select_related('sede', 'financiera').get(pk=cita_id)
-        remitentes = cita.sede.remitentes.filter(activo=True)
 
+        if cita.notificacion_enviada:
+            return f"Cita {cita_id} ya fue notificada anteriormente, se omite."
+
+        remitentes = cita.sede.remitentes.filter(activo=True)
         if not remitentes.exists():
             return f"Sede {cita.sede.nombre} sin remitentes activos, nada que notificar."
 
-        # 1. Correo
         destinatarios = list(remitentes.values_list('correo', flat=True))
-        send_mail(
-            subject=f'Nueva cita agendada — {cita.sede.nombre}',
-            message=(
-                f'Se agendó una cita para la sede {cita.sede.nombre}.\n'
-                f'Financiera: {cita.financiera.nombre}\n'
-                f'Fecha: {cita.fecha}\n'
-                f'Hora: {cita.hora}\n'
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=destinatarios,
-            fail_silently=False,
+
+        contexto = {
+            'sede': cita.sede.nombre,
+            'financiera': cita.financiera.nombre,
+            'fecha': cita.fecha.strftime('%d/%m/%Y'),
+            'hora': cita.hora.strftime('%I:%M %p') if cita.hora else 'Por definir',
+        }
+        html_content = render_to_string('calendario/emails/cita_creada.html', contexto)
+        texto_plano = (
+            f'Se agendó una cita para la sede {contexto["sede"]}.\n'
+            f'Financiera: {contexto["financiera"]}\n'
+            f'Fecha: {contexto["fecha"]}\n'
+            f'Hora: {contexto["hora"]}\n'
         )
 
-        # 2. Google Calendar
+        email = EmailMultiAlternatives(
+            subject=f'Nueva cita agendada — {cita.sede.nombre}',
+            body=texto_plano,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=destinatarios,
+        )
+        email.attach_alternative(html_content, "text/html")
+        email.send(fail_silently=False)
+
+        # Marca como enviado INMEDIATAMENTE después del correo,
+        # así un fallo posterior en Calendar no provoca reenvío del correo
+        cita.notificacion_enviada = True
+        cita.save(update_fields=['notificacion_enviada'])
+
+        # Google Calendar
         event_id = crear_evento_cita(cita)
         if event_id:
             cita.google_event_id = event_id

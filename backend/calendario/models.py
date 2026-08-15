@@ -67,6 +67,7 @@ class Cita(models.Model):
     creado_en = models.DateTimeField(auto_now_add=True)
     actualizado_en = models.DateTimeField(auto_now=True)
     google_event_id = models.CharField(max_length=255, blank=True, null=True)
+    notificacion_enviada = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-fecha', 'hora']
@@ -121,6 +122,8 @@ class Remitente(models.Model):
     whatsapp = models.CharField(max_length=20)
     activo = models.BooleanField(default=True)
     creado_en = models.DateTimeField(auto_now_add=True)
+    calendario_compartido = models.BooleanField(default=False)
+    calendario_compartido_en = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = ('sede', 'correo')
