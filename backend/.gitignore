@@ -1,0 +1,11 @@
+google-calendar-credentials.json
+.env
+venv/
+.aider*
+.env
+venv/
+.aider*
+__pycache__/
+*.pyc
+.png
+.jpg

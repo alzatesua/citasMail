@@ -1,0 +1,19 @@
+
+
+
+usuario: creditos
+correo: test@gmail.com
+pasword: Creditos01.
+
+
+
+cargar las financieras
+python manage.py loaddata financieras
+verificar 
+python manage.py shell -c "from calendario.models import Financiera; print(list(Financiera.objects.values('nombre','codigo')))"
+
+
+
+levantar el worker
+cd ~/Distritec/automatizacion/backend
+celery -A config worker -l info

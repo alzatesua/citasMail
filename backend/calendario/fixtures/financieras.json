@@ -1,0 +1,22 @@
+[
+  {
+    "model": "calendario.financiera",
+    "pk": 1,
+    "fields": {"nombre": "PayJoy", "codigo": "PAYJOY", "activa": true}
+  },
+  {
+    "model": "calendario.financiera",
+    "pk": 2,
+    "fields": {"nombre": "Alo", "codigo": "ALO", "activa": true}
+  },
+  {
+    "model": "calendario.financiera",
+    "pk": 3,
+    "fields": {"nombre": "Krediya", "codigo": "KREDIYA", "activa": true}
+  },
+  {
+    "model": "calendario.financiera",
+    "pk": 4,
+    "fields": {"nombre": "Krediya 150", "codigo": "KREDIYA-150", "activa": true}
+  }
+]
