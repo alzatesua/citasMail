@@ -1,0 +1,81 @@
+.calendario-layout {
+  display: flex;
+  gap: 24px;
+  padding: 16px;
+}
+
+.calendario-col { flex: 2; }
+
+.agenda-col {
+  flex: 1;
+  min-width: 280px;
+  max-height: 700px;
+  overflow-y: auto;
+}
+
+.calendario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.btn-crear-cita {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.agenda-dia h3 { text-transform: capitalize; margin-bottom: 8px; }
+
+.agenda-hora-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.agenda-hora-label { width: 50px; font-size: 12px; color: #888; }
+
+.agenda-cita {
+  background: #dbeafe;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.agenda-slot-libre { flex: 1; height: 20px; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  width: 360px;
+}
+
+.modal-content label { display: block; margin-bottom: 12px; font-size: 14px; }
+.modal-content select,
+.modal-content input { width: 100%; padding: 6px; margin-top: 4px; }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.modal-error { color: #dc2626; font-size: 13px; }

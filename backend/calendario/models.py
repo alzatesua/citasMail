@@ -22,6 +22,7 @@ class Financiera(models.Model):
     """PAYJOY, ALO, KREDIYA, KREDIYA-150, etc."""
     nombre = models.CharField(max_length=50, unique=True)
     codigo = models.CharField(max_length=20, unique=True)
+    color = models.CharField(max_length=7, default='#2563EB')
     activa = models.BooleanField(default=True)
 
     def __str__(self):

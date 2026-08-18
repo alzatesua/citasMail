@@ -1,0 +1,128 @@
+.rbc-calendar {
+  font-family: inherit;
+  color: var(--foreground);
+  min-height: 540px;
+}
+
+.rbc-toolbar {
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.rbc-toolbar-label {
+  color: var(--foreground);
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.rbc-btn-group {
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 30px rgb(15 23 42 / 0.06);
+  overflow: hidden;
+}
+
+.rbc-toolbar button {
+  color: var(--foreground);
+  background: color-mix(in oklch, var(--card), transparent 8%);
+  border: 1px solid var(--border);
+  padding: 7px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.rbc-toolbar button:hover {
+  background: var(--muted);
+}
+
+.rbc-toolbar button.rbc-active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: var(--primary);
+}
+
+.rbc-month-view,
+.rbc-header,
+.rbc-day-bg,
+.rbc-off-range-bg {
+  border-color: var(--border);
+}
+
+.rbc-month-view {
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklch, var(--card), transparent 5%);
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklch, var(--border), transparent 40%),
+    0 18px 55px rgb(15 23 42 / 0.08);
+}
+
+.rbc-header {
+  padding: 11px 6px;
+  background: color-mix(in oklch, var(--muted), transparent 35%);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.rbc-date-cell {
+  padding: 8px;
+  font-size: 0.8rem;
+}
+
+.rbc-date-cell > a {
+  color: var(--foreground);
+}
+
+.rbc-today {
+  background: color-mix(in oklch, var(--primary), transparent 92%);
+}
+
+.rbc-off-range-bg {
+  background: color-mix(in oklch, var(--muted), transparent 35%);
+}
+
+.rbc-selected-cell {
+  background: color-mix(in oklch, var(--primary), transparent 86%);
+}
+
+.rbc-event {
+  background: linear-gradient(135deg, var(--primary), color-mix(in oklch, var(--accent), var(--primary) 45%));
+  border-radius: var(--radius-sm);
+  border: none;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  box-shadow: 0 8px 20px color-mix(in oklch, var(--primary), transparent 72%);
+}
+
+.rbc-event.rbc-selected {
+  background: color-mix(in oklch, var(--primary), black 12%);
+}
+
+.rbc-show-more {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .rbc-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .rbc-toolbar-label {
+    order: -1;
+    text-align: left;
+  }
+
+  .rbc-btn-group {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .rbc-toolbar button {
+    padding: 8px 6px;
+  }
+}

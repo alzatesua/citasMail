@@ -2,21 +2,21 @@
   {
     "model": "calendario.financiera",
     "pk": 1,
-    "fields": {"nombre": "PayJoy", "codigo": "PAYJOY", "activa": true}
+    "fields": {"nombre": "PayJoy", "codigo": "PAYJOY", "color": "#2563EB", "activa": true}
   },
   {
     "model": "calendario.financiera",
     "pk": 2,
-    "fields": {"nombre": "Alo", "codigo": "ALO", "activa": true}
+    "fields": {"nombre": "Alo", "codigo": "ALO", "color": "#16A34A", "activa": true}
   },
   {
     "model": "calendario.financiera",
     "pk": 3,
-    "fields": {"nombre": "Krediya", "codigo": "KREDIYA", "activa": true}
+    "fields": {"nombre": "Krediya", "codigo": "KREDIYA", "color": "#F59E0B", "activa": true}
   },
   {
     "model": "calendario.financiera",
     "pk": 4,
-    "fields": {"nombre": "Krediya 150", "codigo": "KREDIYA-150", "activa": true}
+    "fields": {"nombre": "Krediya 150", "codigo": "KREDIYA-150", "color": "#DC2626", "activa": true}
   }
 ]

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Sede, Financiera, ReglaDisponibilidad, Cita, Remitente
+import re
 
 class SedeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,9 +9,21 @@ class SedeSerializer(serializers.ModelSerializer):
 
 
 class FinancieraSerializer(serializers.ModelSerializer):
+    codigo = serializers.CharField(required=False, allow_blank=True)
+
     class Meta:
         model = Financiera
-        fields = ['id', 'nombre', 'codigo', 'activa']
+        fields = ['id', 'nombre', 'codigo', 'color', 'activa']
+
+    def validate_color(self, value):
+        if not re.match(r'^#[0-9A-Fa-f]{6}$', value):
+            raise serializers.ValidationError('El color debe estar en formato hexadecimal, ej: #2563EB.')
+        return value.upper()
+
+    def validate(self, data):
+        if not data.get('codigo') and data.get('nombre'):
+            data['codigo'] = re.sub(r'[^A-Z0-9]+', '-', data['nombre'].upper()).strip('-')[:20]
+        return data
 
 
 class ReglaDisponibilidadSerializer(serializers.ModelSerializer):
@@ -22,11 +35,12 @@ class ReglaDisponibilidadSerializer(serializers.ModelSerializer):
 class CitaSerializer(serializers.ModelSerializer):
     sede_nombre = serializers.CharField(source='sede.nombre', read_only=True)
     financiera_nombre = serializers.CharField(source='financiera.nombre', read_only=True)
+    financiera_color = serializers.CharField(source='financiera.color', read_only=True)
 
     class Meta:
         model = Cita
         fields = [
-            'id', 'sede', 'sede_nombre', 'financiera', 'financiera_nombre',
+            'id', 'sede', 'sede_nombre', 'financiera', 'financiera_nombre', 'financiera_color',
             'fecha', 'hora', 'estado', 'observaciones',
             'creado_por', 'creado_en', 'actualizado_en',
         ]
