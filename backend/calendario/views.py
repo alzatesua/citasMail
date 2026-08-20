@@ -19,7 +19,8 @@ from .google_calendar import crear_calendario_para_sede
 from .models import Remitente
 from .google_calendar import compartir_calendario_con_remitente
 from django.utils import timezone
-
+from .tasks import notificar_cita_creada, notificar_cita_whatsapp
+from django.conf import settings
 
 class SedeViewSet(viewsets.ModelViewSet):
     queryset = Sede.objects.all()
@@ -56,6 +57,7 @@ class CitaViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         cita = serializer.save(creado_por=self.request.user)
         notificar_cita_creada.delay(cita.id)
+        notificar_cita_whatsapp.delay(cita.id) 
 
 class DisponibilidadView(APIView):
     """
@@ -291,3 +293,26 @@ class SedeViewSet(viewsets.ModelViewSet):
             'compartidos_ahora': resultados['compartidos'],
             'fallidos': resultados['fallidos'],
         })
+
+class WhatsAppConfirmacionWebhookView(APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        token = request.headers.get('X-Whatsapp-Bot-Token')
+        if token != settings.WHATSAPP_BOT_WEBHOOK_TOKEN:
+            return Response({'error': 'Token inválido.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        boton_id = request.data.get('boton_id', '')
+        if not boton_id.startswith('confirmar_cita_'):
+            return Response({'error': 'boton_id inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        cita_id = boton_id.replace('confirmar_cita_', '')
+        cita = get_object_or_404(Cita, pk=cita_id)
+
+        cita.confirmado_whatsapp = True
+        cita.confirmado_whatsapp_en = timezone.now()
+        cita.estado = 'confirmada'
+        cita.save(update_fields=['confirmado_whatsapp', 'confirmado_whatsapp_en', 'estado'])
+
+        return Response({'ok': True, 'cita': cita.id, 'estado': cita.estado})

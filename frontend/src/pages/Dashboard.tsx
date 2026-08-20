@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "@/components/ui/button";
 import CalendarioPage from "./CalendarioPage";
+import EstadoWhatsAppBot from "../components/EstadoWhatsAppBot";
 import {
   crearFinanciera,
   crearRemitente,
@@ -52,7 +53,7 @@ export default function Dashboard() {
   const [remitentes, setRemitentes] = useState<Remitente[]>([]);
   const [historico, setHistorico] = useState<Cita[]>([]);
   const [modal, setModal] = useState<
-    "sede" | "financiera" | "remitente" | "filtro-historico" | "historico" | "lista-remitentes" | null
+    "sede" | "financiera" | "remitente" | "filtro-historico" | "historico" | "lista-remitentes" | "bot-whatsapp" | null
   >(null);
   const [cargando, setCargando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -266,6 +267,9 @@ export default function Dashboard() {
             </Button>
             <Button variant="outline" onClick={abrirListaRemitentes} disabled={cargando} className="h-9 px-3">
               Ver remitentes
+            </Button>
+            <Button variant="outline" onClick={() => setModal("bot-whatsapp")} className="h-9 px-3">
+              Bot WhatsApp
             </Button>
             <Button
               variant="outline"
@@ -716,6 +720,17 @@ export default function Dashboard() {
             <Button variant="outline" onClick={abrirListaRemitentes} disabled={cargando}>
               {cargando ? "Actualizando..." : "Actualizar"}
             </Button>
+            <Button onClick={() => setModal(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={modal === "bot-whatsapp"} onOpenChange={(open) => setModal(open ? "bot-whatsapp" : null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Estado del bot de WhatsApp</DialogTitle>
+          </DialogHeader>
+          <EstadoWhatsAppBot />
+          <DialogFooter>
             <Button onClick={() => setModal(null)}>Cerrar</Button>
           </DialogFooter>
         </DialogContent>

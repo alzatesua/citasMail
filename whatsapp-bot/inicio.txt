@@ -1,0 +1,5 @@
+instalar dependencias
+npm install
+
+corer el bot
+npm start

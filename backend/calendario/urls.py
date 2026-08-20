@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     SedeViewSet, FinancieraViewSet, ReglaDisponibilidadViewSet,
     CitaViewSet, DisponibilidadView, HistoricoView, RemitenteViewSet,
+    WhatsAppConfirmacionWebhookView
 )
 
 router = DefaultRouter()
@@ -16,4 +17,5 @@ urlpatterns = [
     path('', include(router.urls)),
     path('disponibilidad/', DisponibilidadView.as_view(), name='disponibilidad'),
     path('historico/', HistoricoView.as_view(), name='historico'),
+    path('whatsapp/confirmar/', WhatsAppConfirmacionWebhookView.as_view(), name='whatsapp-confirmar'),
 ]

@@ -6,6 +6,10 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+import requests
+from celery import shared_task
+from django.conf import settings
+
 
 @shared_task
 def generar_recordatorios():
@@ -98,3 +102,49 @@ def notificar_cita_creada(self, cita_id):
 
     except Exception as exc:
         raise self.retry(exc=exc)
+
+
+
+@shared_task
+def notificar_cita_whatsapp(cita_id):
+    from .models import Cita, Remitente  # import local para evitar ciclos
+
+    try:
+        cita = Cita.objects.select_related('sede', 'financiera').get(pk=cita_id)
+    except Cita.DoesNotExist:
+        return
+
+    telefonos = list(
+        Remitente.objects.filter(sede=cita.sede, activo=True)
+        .exclude(whatsapp='')
+        .values_list('whatsapp', flat=True)
+    )
+
+    if not telefonos:
+        # Esta sede no tiene remitentes activos con WhatsApp, no hay nada que enviar
+        return
+
+    mensaje = (
+        f"📅 *Nueva cita agendada*\n"
+        f"Sede: {cita.sede.nombre}\n"
+        f"Financiera: {cita.financiera.nombre}\n"
+        f"Fecha: {cita.fecha.strftime('%d/%m/%Y')}\n"
+        + (f"Hora: {cita.hora.strftime('%H:%M')}\n" if cita.hora else "")
+        + (f"Obs: {cita.observaciones}\n" if cita.observaciones else "")
+    )
+
+    try:
+        print(f"DEBUG token backend: {repr(settings.WHATSAPP_BOT_API_TOKEN)}")
+        resp = requests.post(
+            f"{settings.WHATSAPP_BOT_URL}/enviar-confirmacion-individual",
+            json={
+                "telefonos": telefonos,
+                "cita_id": cita.id,
+                "mensaje": mensaje,
+            },
+            headers={"x-api-key": settings.WHATSAPP_BOT_API_TOKEN},
+            timeout=10,  # el bot responde de inmediato y envía en segundo plano
+        )
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Error enviando WhatsApp para cita {cita_id}: {e}")

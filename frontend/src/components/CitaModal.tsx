@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import type { Sede, Financiera } from "../types/calendario";
 import { getSedes, getFinancieras, crearCita } from "../services/calendarioApi";
+import { useToast } from "../context/ToastContext";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export default function CitaModal({ open, fechaInicial, onClose, onCreada }: Props) {
+  const { showToast } = useToast();
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [financieras, setFinancieras] = useState<Financiera[]>([]);
   const [sede, setSede] = useState<string>("");
@@ -53,11 +55,17 @@ export default function CitaModal({ open, fechaInicial, onClose, onCreada }: Pro
     setError(null);
     setLoading(true);
     try {
-      await crearCita({ sede: Number(sede), financiera: Number(financiera), fecha, hora });
+      const cita = await crearCita({ sede: Number(sede), financiera: Number(financiera), fecha, hora });
       onCreada();
       onClose();
+      showToast(
+        `Cita agendada: ${cita.sede_nombre} · ${cita.financiera_nombre} · ${cita.fecha} ${cita.hora.slice(0, 5)} `,
+        "success"
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al agendar la cita");
+      const mensaje = err instanceof Error ? err.message : "Error al agendar la cita";
+      setError(mensaje);
+      showToast(mensaje, "error");
     } finally {
       setLoading(false);
     }

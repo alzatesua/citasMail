@@ -8,6 +8,10 @@ class Sede(models.Model):
         max_length=255, blank=True, null=True,
         help_text="ID del calendario de Google compartido con la cuenta de servicio"
     )
+    whatsapp_group_id = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text="ID del grupo de WhatsApp, formato: 1234567890-1234567890@g.us"
+    )
     ciudad = models.CharField(max_length=100)
     activa = models.BooleanField(default=True)
 
@@ -17,6 +21,9 @@ class Sede(models.Model):
     def __str__(self):
         return self.nombre
 
+
+
+        
 
 class Financiera(models.Model):
     """PAYJOY, ALO, KREDIYA, KREDIYA-150, etc."""
@@ -69,6 +76,10 @@ class Cita(models.Model):
     actualizado_en = models.DateTimeField(auto_now=True)
     google_event_id = models.CharField(max_length=255, blank=True, null=True)
     notificacion_enviada = models.BooleanField(default=False)
+
+    whatsapp_mensaje_id = models.CharField(max_length=255, blank=True, null=True)   
+    confirmado_whatsapp = models.BooleanField(default=False)                        
+    confirmado_whatsapp_en = models.DateTimeField(null=True, blank=True)  
 
     class Meta:
         ordering = ['-fecha', 'hora']
