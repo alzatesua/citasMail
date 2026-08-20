@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -35,12 +36,14 @@ export default function CitaModal({ open, fechaInicial, onClose, onCreada }: Pro
   const [financiera, setFinanciera] = useState<string>("");
   const [fecha, setFecha] = useState(fechaInicial);
   const [hora, setHora] = useState("11:00");
+  const [observaciones, setObservaciones] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setFecha(fechaInicial);
+    setObservaciones("");
     setError(null);
     getSedes().then(setSedes).catch(() => setError("No se pudieron cargar las sedes"));
     getFinancieras().then(setFinancieras).catch(() => setError("No se pudieron cargar las financieras"));
@@ -55,7 +58,13 @@ export default function CitaModal({ open, fechaInicial, onClose, onCreada }: Pro
     setError(null);
     setLoading(true);
     try {
-      const cita = await crearCita({ sede: Number(sede), financiera: Number(financiera), fecha, hora });
+      const cita = await crearCita({
+        sede: Number(sede),
+        financiera: Number(financiera),
+        fecha,
+        hora,
+        observaciones: observaciones.trim() || undefined,
+      });
       onCreada();
       onClose();
       showToast(
@@ -136,6 +145,17 @@ export default function CitaModal({ open, fechaInicial, onClose, onCreada }: Pro
               onChange={(e) => setHora(e.target.value)}
               required
               className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Comentarios (opcional)</Label>
+            <Textarea
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+              placeholder="Ej: con recurso econimico o sin recurso economico"
+              rows={3}
+              className="text-sm"
             />
           </div>
 

@@ -121,11 +121,21 @@ export async function getHistorico(params: {
   sede?: number;
   anio?: number;
   mes?: number;
+  fechaInicio?: string;
+  fechaFin?: string;
 }): Promise<Cita[]> {
   const search = new URLSearchParams();
   if (params.sede) search.set("sede", String(params.sede));
-  if (params.anio) search.set("anio", String(params.anio));
-  if (params.mes) search.set("mes", String(params.mes));
+
+  if (params.fechaInicio || params.fechaFin) {
+    // El rango de fechas tiene prioridad sobre año/mes (así lo espera el backend)
+    if (params.fechaInicio) search.set("fecha_inicio", params.fechaInicio);
+    if (params.fechaFin) search.set("fecha_fin", params.fechaFin);
+  } else {
+    if (params.anio) search.set("anio", String(params.anio));
+    if (params.mes) search.set("mes", String(params.mes));
+  }
+
   const query = search.toString();
   const res = await fetch(`${API_URL}/historico/${query ? `?${query}` : ""}`, {
     headers: authHeaders(),
@@ -139,6 +149,7 @@ export interface CrearCitaPayload {
   financiera: number;
   fecha: string;
   hora: string;
+  observaciones?: string;
 }
 
 export async function crearCita(payload: CrearCitaPayload): Promise<Cita> {

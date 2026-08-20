@@ -101,7 +101,13 @@ class DisponibilidadView(APIView):
 class HistoricoView(APIView):
     """
     GET /api/calendario/historico/?sede=1&anio=2026&mes=6
+    GET /api/calendario/historico/?sede=1&fecha_inicio=2026-01-01&fecha_fin=2026-06-30
+
     Devuelve las citas de meses/años anteriores (o cualquier rango solicitado).
+
+    Si se envían fecha_inicio y/o fecha_fin, esos parámetros tienen prioridad
+    y se ignoran anio/mes. Si no se envía ninguno de los dos, se usa el
+    filtro clásico por año/mes.
     """
     permission_classes = [IsAuthenticated]
 
@@ -109,20 +115,32 @@ class HistoricoView(APIView):
         sede_id = request.query_params.get('sede')
         anio = request.query_params.get('anio')
         mes = request.query_params.get('mes')
+        fecha_inicio = request.query_params.get('fecha_inicio')
+        fecha_fin = request.query_params.get('fecha_fin')
 
         qs = Cita.objects.all().select_related('sede', 'financiera')
+
         if sede_id:
             qs = qs.filter(sede_id=sede_id)
-        if anio:
-            qs = qs.filter(fecha__year=int(anio))
-        if mes:
-            qs = qs.filter(fecha__month=int(mes))
+
+        if fecha_inicio or fecha_fin:
+            # Filtro por rango explícito de fechas (formato YYYY-MM-DD)
+            if fecha_inicio:
+                qs = qs.filter(fecha__gte=fecha_inicio)
+            if fecha_fin:
+                qs = qs.filter(fecha__lte=fecha_fin)
+        else:
+            # Filtro clásico por año/mes (compatibilidad con lo que ya existía)
+            if anio:
+                qs = qs.filter(fecha__year=int(anio))
+            if mes:
+                qs = qs.filter(fecha__month=int(mes))
 
         qs = qs.order_by('-fecha')
         serializer = CitaSerializer(qs, many=True)
         return Response(serializer.data)
 
-
+        
 class RemitenteViewSet(viewsets.ModelViewSet):
     serializer_class = RemitenteSerializer
     permission_classes = [IsAuthenticated]

@@ -45,8 +45,8 @@ export default function CalendarioPage() {
   const cargarCitas = useCallback(() => {
     setCargando(true);
     setError(null);
-    getCitas(SEDE_ACTIVA)
-      .then(setCitas)
+    Promise.all([getCitas(SEDE_ACTIVA, "pendiente"), getCitas(SEDE_ACTIVA, "confirmada")])
+      .then(([pendientes, confirmadas]) => setCitas([...pendientes, ...confirmadas]))
       .catch((err) => {
         console.error(err);
         setError(err instanceof Error ? err.message : "No se pudieron cargar las citas");
@@ -61,8 +61,9 @@ export default function CalendarioPage() {
   const eventos: CalendarEvent[] = citas.map((cita) => {
     const inicio = citaToDate(cita);
     const fin = new Date(inicio.getTime() + 30 * 60000);
+    const etiquetaEstado = cita.estado === "confirmada" ? "Confirmada" : "Pendiente";
     return {
-      title: `${cita.hora.slice(0, 5)} - ${cita.financiera_nombre}`,
+      title: `${cita.financiera_nombre} - ${etiquetaEstado}`,
       start: inicio,
       end: fin,
       resource: cita,
@@ -87,6 +88,7 @@ export default function CalendarioPage() {
 
   const hoy = toLocalDateInputValue(new Date());
   const citasHoy = citas.filter((cita) => cita.fecha === hoy).length;
+  const citasPendientes = citas.filter((cita) => cita.estado === "pendiente").length;
   const financierasActivas = new Set(citas.map((cita) => cita.financiera)).size;
   const primeraSeleccion = fechasSeleccionadas[0] || hoy;
 
@@ -97,7 +99,7 @@ export default function CalendarioPage() {
           <Card className="rounded-lg border-border/70 bg-card/80 shadow-sm backdrop-blur-xl dark:shadow-black/20">
             <CardContent className="p-4">
               <p className="text-xs font-medium text-muted-foreground">Citas pendientes</p>
-              <p className="mt-1 text-2xl font-bold text-primary">{citas.length}</p>
+              <p className="mt-1 text-2xl font-bold text-primary">{citasPendientes}</p>
             </CardContent>
           </Card>
           <Card className="rounded-lg border-border/70 bg-card/80 shadow-sm backdrop-blur-xl dark:shadow-black/20">
@@ -150,11 +152,15 @@ export default function CalendarioPage() {
           onSelectSlot={handleSelectSlot}
           onSelectEvent={(event) => setFechasSeleccionadas([(event as CalendarEvent).resource.fecha])}
           eventPropGetter={(event) => {
-            const color = (event as CalendarEvent).resource.financiera_color || "#2563EB";
+            const cita = (event as CalendarEvent).resource;
+            const color = cita.financiera_color || "#2563EB";
+            const esPendiente = cita.estado === "pendiente";
             return {
               style: {
                 background: color,
                 boxShadow: `0 8px 20px ${color}40`,
+                opacity: esPendiente ? 0.7 : 1,
+                border: esPendiente ? `2px dashed ${color}` : "2px solid transparent",
               },
             };
           }}

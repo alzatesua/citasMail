@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 import { useAuth } from "../context/AuthContext";
 import { Button } from "@/components/ui/button";
 import CalendarioPage from "./CalendarioPage";
@@ -71,6 +72,8 @@ export default function Dashboard() {
     sede: "",
     anio: String(thisYear),
     mes: String(thisMonth),
+    fechaInicio: "",
+    fechaFin: "",
   });
 
   const sedesActivas = useMemo(() => sedes.filter((sede) => sede.activa), [sedes]);
@@ -187,6 +190,8 @@ export default function Dashboard() {
         sede: filtrosHistorico.sede ? Number(filtrosHistorico.sede) : undefined,
         anio: filtrosHistorico.anio ? Number(filtrosHistorico.anio) : undefined,
         mes: filtrosHistorico.mes ? Number(filtrosHistorico.mes) : undefined,
+        fechaInicio: filtrosHistorico.fechaInicio || undefined,
+        fechaFin: filtrosHistorico.fechaFin || undefined,
       });
       setHistorico(citas);
       setModal("historico");
@@ -195,6 +200,41 @@ export default function Dashboard() {
     } finally {
       setCargando(false);
     }
+  }
+
+  // Genera un .xlsx en el navegador a partir de las citas ya cargadas en `historico`.
+  // No requiere ningún endpoint adicional en el backend.
+  function exportarHistoricoExcel() {
+    if (!historico.length) return;
+
+    const filas = historico.map((cita) => ({
+      Fecha: cita.fecha,
+      Hora: cita.hora ? cita.hora.slice(0, 5) : "",
+      Sede: cita.sede_nombre,
+      Financiera: cita.financiera_nombre,
+      Estado: cita.estado,
+      Observaciones: cita.observaciones || "",
+    }));
+
+    const hoja = XLSX.utils.json_to_sheet(filas);
+    hoja["!cols"] = [
+      { wch: 12 }, // Fecha
+      { wch: 8 },  // Hora
+      { wch: 18 }, // Sede
+      { wch: 18 }, // Financiera
+      { wch: 12 }, // Estado
+      { wch: 40 }, // Observaciones
+    ];
+
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Historico");
+
+    const rango =
+      filtrosHistorico.fechaInicio || filtrosHistorico.fechaFin
+        ? `${filtrosHistorico.fechaInicio || "inicio"}_a_${filtrosHistorico.fechaFin || "hoy"}`
+        : `${filtrosHistorico.anio}-${filtrosHistorico.mes.padStart(2, "0")}`;
+
+    XLSX.writeFile(libro, `historico-citas_${rango}.xlsx`);
   }
 
   async function abrirListaRemitentes() {
@@ -551,6 +591,7 @@ export default function Dashboard() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label>Año</Label>
@@ -577,6 +618,41 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
+
+              <div className="relative py-1 text-center text-xs text-muted-foreground">
+                <span className="relative bg-popover px-2">o filtra por rango de fechas</span>
+                <div className="absolute inset-x-0 top-1/2 -z-10 h-px bg-border" />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Desde</Label>
+                  <input
+                    type="date"
+                    className={inputClass}
+                    value={filtrosHistorico.fechaInicio}
+                    onChange={(event) =>
+                      setFiltrosHistorico((actual) => ({ ...actual, fechaInicio: event.target.value }))
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Hasta</Label>
+                  <input
+                    type="date"
+                    className={inputClass}
+                    value={filtrosHistorico.fechaFin}
+                    onChange={(event) =>
+                      setFiltrosHistorico((actual) => ({ ...actual, fechaFin: event.target.value }))
+                    }
+                  />
+                </div>
+              </div>
+              {(filtrosHistorico.fechaInicio || filtrosHistorico.fechaFin) && (
+                <p className="text-xs text-muted-foreground">
+                  El rango de fechas tiene prioridad sobre el filtro de año/mes.
+                </p>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setModal(null)}>
@@ -596,7 +672,7 @@ export default function Dashboard() {
             <DialogTitle>Histórico de citas</DialogTitle>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-auto rounded-md border border-border/70">
-            <table className="w-full min-w-[620px] text-left text-sm">
+            <table className="w-full min-w-[820px] text-left text-sm">
               <thead className="sticky top-0 bg-popover text-xs text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2 font-medium">Fecha</th>
@@ -604,6 +680,7 @@ export default function Dashboard() {
                   <th className="px-3 py-2 font-medium">Sede</th>
                   <th className="px-3 py-2 font-medium">Financiera</th>
                   <th className="px-3 py-2 font-medium">Estado</th>
+                  <th className="px-3 py-2 font-medium">Comentarios</th>
                 </tr>
               </thead>
               <tbody>
@@ -622,11 +699,14 @@ export default function Dashboard() {
                       </span>
                     </td>
                     <td className="px-3 py-2 capitalize">{cita.estado}</td>
+                    <td className="max-w-[220px] truncate px-3 py-2 text-muted-foreground" title={cita.observaciones || ""}>
+                      {cita.observaciones || "—"}
+                    </td>
                   </tr>
                 ))}
                 {!historico.length && (
                   <tr>
-                    <td className="px-3 py-6 text-center text-muted-foreground" colSpan={5}>
+                    <td className="px-3 py-6 text-center text-muted-foreground" colSpan={6}>
                       No hay citas para los filtros seleccionados.
                     </td>
                   </tr>
@@ -640,6 +720,13 @@ export default function Dashboard() {
             </Button>
             <Button variant="outline" onClick={cargarHistorico} disabled={cargando}>
               {cargando ? "Actualizando..." : "Actualizar"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={exportarHistoricoExcel}
+              disabled={!historico.length}
+            >
+              Exportar a Excel
             </Button>
             <Button onClick={() => setModal(null)}>Cerrar</Button>
           </DialogFooter>

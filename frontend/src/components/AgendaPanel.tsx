@@ -16,6 +16,21 @@ function formatFechaLarga(fechaISO: string): string {
   return fecha.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
 }
 
+function EstadoBadge({ estado }: { estado: Cita["estado"] }) {
+  const esConfirmada = estado === "confirmada";
+  return (
+    <span
+      className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+        esConfirmada
+          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+          : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+      }`}
+    >
+      {esConfirmada ? "Confirmada" : "Pendiente"}
+    </span>
+  );
+}
+
 export default function AgendaPanel({ fechas, citas }: Props) {
   if (fechas.length === 0) {
     return (
@@ -61,7 +76,10 @@ export default function AgendaPanel({ fechas, citas }: Props) {
                             backgroundColor: `${citaEnHora.financiera_color || "#2563EB"}18`,
                           }}
                         >
-                          <p className="truncate font-semibold text-foreground">{citaEnHora.financiera_nombre}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="truncate font-semibold text-foreground">{citaEnHora.financiera_nombre}</p>
+                            <EstadoBadge estado={citaEnHora.estado} />
+                          </div>
                           <p className="truncate text-xs text-muted-foreground">{citaEnHora.sede_nombre}</p>
                         </div>
                       ) : (
