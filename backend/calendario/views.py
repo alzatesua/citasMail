@@ -22,10 +22,6 @@ from django.utils import timezone
 from .tasks import notificar_cita_creada, notificar_cita_whatsapp
 from django.conf import settings
 
-class SedeViewSet(viewsets.ModelViewSet):
-    queryset = Sede.objects.all()
-    serializer_class = SedeSerializer
-    permission_classes = [IsAuthenticated]
 
 
 class FinancieraViewSet(viewsets.ModelViewSet):
@@ -140,7 +136,6 @@ class HistoricoView(APIView):
         serializer = CitaSerializer(qs, many=True)
         return Response(serializer.data)
 
-        
 class RemitenteViewSet(viewsets.ModelViewSet):
     serializer_class = RemitenteSerializer
     permission_classes = [IsAuthenticated]
@@ -152,68 +147,25 @@ class RemitenteViewSet(viewsets.ModelViewSet):
             qs = qs.filter(sede_id=sede_id)
         return qs
 
-class SedeViewSet(viewsets.ModelViewSet):
-    queryset = Sede.objects.all()
-    serializer_class = SedeSerializer
-    permission_classes = [IsAuthenticated]
+    def perform_create(self, serializer):
+        remitente = serializer.save()
+        sede = remitente.sede
 
-    @action(detail=True, methods=['post'], url_path='crear-calendario')
-    def crear_calendario(self, request, pk=None):
-        sede = self.get_object()
-        correo = request.data.get('correo')
-
-        if not correo:
-            return Response(
-                {'error': 'El campo correo es obligatorio (a quién compartir el calendario).'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            calendar_id = crear_calendario_para_sede(sede, correo)
-        except Exception as e:
-            return Response(
-                {'error': f'Error creando el calendario: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-        calendario_anterior = sede.google_calendar_id
-        sede.google_calendar_id = calendar_id
-        sede.save(update_fields=['google_calendar_id'])
-
-        return Response({
-            'sede': sede.nombre,
-            'google_calendar_id': calendar_id,
-            'calendario_anterior': calendario_anterior,
-            'compartido_con': correo,
-        })
-
-    @action(detail=True, methods=['patch'], url_path='calendario-id')
-    def actualizar_calendario_id(self, request, pk=None):
-        """
-        Asigna o modifica manualmente el google_calendar_id de la sede,
-        sin crear un calendario nuevo en Google (útil si ya lo copiaste
-        directo desde la interfaz de Google Calendar).
-        """
-        sede = self.get_object()
-        nuevo_id = request.data.get('google_calendar_id')
-
-        if not nuevo_id:
-            return Response(
-                {'error': 'El campo google_calendar_id es obligatorio.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        calendario_anterior = sede.google_calendar_id
-        sede.google_calendar_id = nuevo_id
-        sede.save(update_fields=['google_calendar_id'])
-
-        return Response({
-            'sede': sede.nombre,
-            'google_calendar_id': sede.google_calendar_id,
-            'calendario_anterior': calendario_anterior,
-        })
-
-
+        if not sede.google_calendar_id:
+            calendar_id = crear_calendario_para_sede(sede, remitente.correo)
+            sede.google_calendar_id = calendar_id
+            sede.save(update_fields=['google_calendar_id'])
+            remitente.calendario_compartido = True
+            remitente.calendario_compartido_en = timezone.now()
+            remitente.save(update_fields=['calendario_compartido', 'calendario_compartido_en'])
+        else:
+            try:
+                compartir_calendario_con_remitente(sede, remitente.correo)
+                remitente.calendario_compartido = True
+                remitente.calendario_compartido_en = timezone.now()
+                remitente.save(update_fields=['calendario_compartido', 'calendario_compartido_en'])
+            except Exception as e:
+                print(f"[perform_create Remitente] ERROR al compartir: {e}")
 
 class SedeViewSet(viewsets.ModelViewSet):
     queryset = Sede.objects.all()
